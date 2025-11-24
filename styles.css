@@ -2,8 +2,8 @@
 /* { border: 1px solid red; } */
 
 :root {
-  --bg-color: #121919ff;
-  --text-color: #edececcc;
+  --bg-color: #182323ff;
+  --text-color: #edececd7;
   --SHORTCUT_TIMEOUT: 1s;
 }
 body {
@@ -46,7 +46,7 @@ body::after {
   content: "";
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.44);
   z-index: 0;
 }
 

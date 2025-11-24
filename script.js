@@ -48,16 +48,16 @@ const MASTER_MAP = [
         icon: "agentX.png",
       },
       {
+        name: "Office 365",
+        shortcutKey: "d",
+        url: "https://m365.cloud.microsoft/apps?auth=2&home=1",
+        icon: "o365.png",
+      },
+      {
         name: "SharePoint",
         shortcutKey: "s",
         url: "https://abilexde.sharepoint.com/",
         icon: "sharepoint.png",
-      },
-      {
-        name: "abileX Office365",
-        shortcutKey: "d",
-        url: "https://m365.cloud.microsoft/apps?auth=2&home=1",
-        icon: "o365.png",
       },
     ],
   },
@@ -152,18 +152,6 @@ const MASTER_MAP = [
     groupName: "Entertainment",
     items: [
       {
-        name: "Hackernews",
-        shortcutKey: "4",
-        url: "https://news.ycombinator.com/",
-        icon: "hackernews.svg",
-      },
-      {
-        name: "Soundcloud",
-        shortcutKey: "2",
-        url: "https://www.soundcloud.com/",
-        icon: "soundcloud.png",
-      },
-      {
         name: "Reddit",
         shortcutKey: "3",
         url: "https://www.reddit.com/",
@@ -174,6 +162,18 @@ const MASTER_MAP = [
         shortcutKey: "1",
         url: "https://www.youtube.com/",
         icon: "youtube.png",
+      },
+      {
+        name: "Hackernews",
+        shortcutKey: "4",
+        url: "https://news.ycombinator.com/",
+        icon: "hackernews.svg",
+      },
+      {
+        name: "Soundcloud",
+        shortcutKey: "2",
+        url: "https://www.soundcloud.com/",
+        icon: "soundcloud.png",
       },
     ],
   },
