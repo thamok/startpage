@@ -236,6 +236,8 @@ function setRandomBackground() {
   }
 }
 
+// Clock is handled by setupClockTopLeft(); removed legacy displayCurrentTime()
+
 let $shortcutDisplayList = document.getElementsByClassName("shortcut");
 let listeningForShortcut = false;
 let listenerTimeout;
@@ -306,36 +308,7 @@ function setupGroups() {
   }
 }
 
-// Create a global Google search input placed after the welcome string
-function setupGlobalSearch() {
-  const welcomeEl = document.getElementById("welcome-string");
-  const wrapper = document.createElement("div");
-  wrapper.className = "global-search";
-
-  const input = document.createElement("input");
-  input.setAttribute("type", "search");
-  input.setAttribute("placeholder", "Search Google or press Enter...");
-  input.className = "global-search-input";
-  wrapper.appendChild(input);
-
-  // On Enter, open Google search
-  input.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-      const q = (this.value || "").trim();
-      if (q) {
-        const href = "https://www.google.com/search?q=" + encodeURIComponent(q);
-        window.open(href, "_blank", "noopener");
-      }
-    }
-  });
-
-  // Insert after welcome string if possible, otherwise at top of container
-  if (welcomeEl && welcomeEl.parentNode) {
-    welcomeEl.parentNode.insertBefore(wrapper, welcomeEl.nextSibling);
-  } else if ($container) {
-    $container.insertBefore(wrapper, $container.firstChild);
-  }
-}
+// global search (omnibox) is implemented later in the file; this duplicate helper was removed to simplify the codebase
 
 // Helper: create a slug from a name to match asset filenames
 function slugify(name) {
@@ -467,6 +440,43 @@ function setupWeatherTopRight() {
   fetchWeather(card);
 }
 
+// create a small clock widget in the top-left corner
+function setupClockTopLeft() {
+  // remove any existing top-left clock
+  const existing = document.querySelector(".clock-topleft");
+  if (existing && existing.parentNode)
+    existing.parentNode.removeChild(existing);
+
+  const div = document.createElement("div");
+  div.className = "clock-topleft";
+  div.innerHTML =
+    '<div class="widget card clock-card"><div class="widget-body clock-display"><div class="clock-time"></div><div class="clock-date"></div></div></div>';
+  document.body.appendChild(div);
+
+  const timeEl = div.querySelector(".clock-time");
+  const dateEl = div.querySelector(".clock-date");
+
+  function updateClock() {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, "0");
+    const minutes = now.getMinutes().toString().padStart(2, "0");
+    const seconds = now.getSeconds().toString().padStart(2, "0");
+
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    const day = days[now.getDay()];
+    const date = now.getDate();
+    const month = months[now.getMonth()];
+
+    timeEl.textContent = `${hours}:${minutes}:${seconds}`;
+    dateEl.textContent = `${day}, ${month} ${date}`;
+  }
+
+  updateClock();
+  setInterval(updateClock, 1000);
+}
+
 // crate a simple to do list
 function setupToDoList(cardEl) {
   if (!cardEl) return;
@@ -571,7 +581,7 @@ function setupTodoList() {
     '<h3>To Do</h3><div class="widget-body"><div class="todo-controls"></div><ul class="todo-list"></ul></div>';
 
   wrapper.appendChild(card);
-  // Insert after content div instead of appending to body
+  // Insert after content div
   if ($container && $container.parentNode) {
     $container.parentNode.insertBefore(wrapper, $container.nextSibling);
   } else {
@@ -625,6 +635,176 @@ function tryFaviconSrc(imgEl, itemOrName) {
   }
 
   next();
+}
+
+// Simple markdown parser for notes
+function parseMarkdown(text) {
+  if (!text) return "";
+
+  // Escape HTML
+  text = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Headers
+  text = text.replace(/^### (.*$)/gim, "<h3>$1</h3>");
+  text = text.replace(/^## (.*$)/gim, "<h2>$1</h2>");
+  text = text.replace(/^# (.*$)/gim, "<h1>$1</h1>");
+
+  // Bold
+  text = text.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  text = text.replace(/__(.+?)__/g, "<strong>$1</strong>");
+
+  // Italic
+  text = text.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  text = text.replace(/_(.+?)_/g, "<em>$1</em>");
+
+  // Code blocks
+  text = text.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
+
+  // Inline code
+  text = text.replace(/`(.+?)`/g, "<code>$1</code>");
+
+  // Links
+  text = text.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener">$1</a>'
+  );
+
+  // Blockquotes
+  text = text.replace(/^&gt; (.*$)/gim, "<blockquote>$1</blockquote>");
+
+  // Lists
+  text = text.replace(/^\* (.+)$/gim, "<li>$1</li>");
+  text = text.replace(/^- (.+)$/gim, "<li>$1</li>");
+  text = text.replace(/(<li>.*<\/li>)/s, "<ul>$1</ul>");
+
+  // Line breaks
+  text = text.replace(/\n\n/g, "</p><p>");
+  text = text.replace(/\n/g, "<br>");
+
+  // Wrap in paragraphs if not already wrapped
+  if (
+    !text.startsWith("<h") &&
+    !text.startsWith("<ul") &&
+    !text.startsWith("<pre")
+  ) {
+    text = "<p>" + text + "</p>";
+  }
+
+  return text;
+}
+
+// Setup notes modal and floating button
+function setupNotes() {
+  const STORAGE_KEY = "startpage_notes_v1";
+
+  // Floating button (toggle sidebar)
+  const fab = document.createElement("button");
+  fab.className = "notes-fab";
+  fab.innerHTML = "📝";
+  fab.setAttribute("aria-label", "Toggle Notes Sidebar");
+  document.body.appendChild(fab);
+
+  // Sidebar container
+  const sidebar = document.createElement("aside");
+  sidebar.className = "notes-sidebar";
+  sidebar.innerHTML = `
+    <div class="notes-header">
+      <h3>Notes</h3>
+      <div class="notes-header-actions">
+        <button class="notes-edit-btn" aria-label="Edit note">Edit</button>
+        <button class="notes-close-btn" aria-label="Close">&times;</button>
+      </div>
+    </div>
+    <div class="notes-body">
+      <div class="notes-preview"></div>
+      <textarea class="notes-textarea" style="display:none" placeholder="Write your notes in Markdown..."></textarea>
+    </div>
+  `;
+  document.body.appendChild(sidebar);
+
+  const preview = sidebar.querySelector(".notes-preview");
+  const textarea = sidebar.querySelector(".notes-textarea");
+  const closeBtn = sidebar.querySelector(".notes-close-btn");
+  const editBtn = sidebar.querySelector(".notes-edit-btn");
+
+  function loadNotes() {
+    try {
+      return localStorage.getItem(STORAGE_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function saveNotes(text) {
+    try {
+      localStorage.setItem(STORAGE_KEY, text);
+    } catch (e) {
+      console.warn("Failed to save notes", e);
+    }
+  }
+
+  function showPreview() {
+    const md = loadNotes();
+    preview.innerHTML = parseMarkdown(md);
+    preview.style.display = "block";
+    textarea.style.display = "none";
+  }
+
+  function showEditor() {
+    textarea.value = loadNotes();
+    textarea.style.display = "block";
+    preview.style.display = "none";
+    textarea.focus();
+  }
+
+  // Initialize preview
+  showPreview();
+
+  // Toggle sidebar
+  function openSidebar() {
+    sidebar.classList.add("open");
+    // ensure preview is visible when opening
+    showPreview();
+  }
+  function closeSidebar() {
+    sidebar.classList.remove("open");
+  }
+
+  fab.addEventListener("click", function () {
+    if (sidebar.classList.contains("open")) closeSidebar();
+    else openSidebar();
+  });
+
+  closeBtn.addEventListener("click", closeSidebar);
+
+  // Edit button toggles editor/preview
+  editBtn.addEventListener("click", function () {
+    const isEditing = textarea.style.display !== "none";
+    if (isEditing) {
+      // Save and switch to preview
+      saveNotes(textarea.value || "");
+      showPreview();
+      editBtn.textContent = "Edit";
+    } else {
+      showEditor();
+      editBtn.textContent = "Save";
+    }
+  });
+
+  // Auto-save while editing
+  textarea.addEventListener("input", function () {
+    saveNotes(this.value);
+  });
+
+  // Close on Escape
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && sidebar.classList.contains("open")) {
+      closeSidebar();
+    }
+  });
 }
 
 // Global search
@@ -785,9 +965,11 @@ function main() {
   setRandomBackground();
   setupWelcomeMessage();
   setupWeatherTopRight();
+  setupClockTopLeft();
   setupGroups();
   setupGlobalSearch();
   setupTodoList();
+  setupNotes();
   // listen on keydown so we can prevent default behavior (Tab shifting focus)
   document.addEventListener("keydown", shortcutListener, false);
 
