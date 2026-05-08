@@ -123,6 +123,12 @@ const MASTER_MAP = [
         url: "https://mann-hummel.atlassian.net/wiki/home",
         icon: "confluence.png",
       },
+      {
+        name: "Dürkopp Adler",
+        shortcutKey: "u",
+        url: "https://duerkopp-adler.atlassian.net/jira/software/c/projects/CRM/boards/639",
+        icon: "jira.png",
+      },
     ],
   },
   {
